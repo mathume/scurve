@@ -1,0 +1,14 @@
+// returns a list IE such that:
+// psi(G*F^(q-t+qj)*xyz) 
+// = sum_{(i0,...,i4) in IE[1]} p^ki4 (q-t+qj)!/(i0!...i4!) x^IE[2][1] y^IE[2][2] z^IE[2][3]
+proc IndicesExponents(intvec base_exponent, int j, int q, int t){
+   
+      list indices = list(intvec(3,0,0),intvec(0,3,0),intvec(0,0,3));
+      list exponents=list(intvec(1,0,0),intvec(0,1,0),intvec(0,0,1));
+      list phiexps = list(0,0,0);
+
+      return(list(indices, exponents, phiexps));
+}/*end proc*/
+proc reduceStep(poly p, ideal i, int j){
+   return(p);
+}

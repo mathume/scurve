@@ -1,0 +1,263 @@
+/* gets the image of a base element under psi */
+proc Psi(intvec baseexponent, ideal jacobIdeal, int p, int r, int N, int t, int k){
+  
+  int q = p^r;
+  poly psi = 0;
+  intvec e = baseexponent;
+  list IEP = IndicesExponentsPhis(e, N, q, t, k);
+  
+  for(int j = N-1; j>=0; j--){
+
+    //list IE = IndicesExponents(e, j, q, t, nalpha, alpha); //get exponents for F_k^(j+1)
+    list IE = list(IEP[1][j+1], IEP[2][j+1], IEP[3][j+1]); //get exponents for F_k^(j+1)
+    //validExponents(IE, j);
+    bigint CJ = C(j, N);
+    
+    poly SigmaJ = Sigma(j, p, r, t, IE);//get sum for F_k^(j+1)
+    
+    psi = psi + CJ*SigmaJ;
+//write(":a psi.tmp", string("j:", j, "   ", "psi prev: ", psi));
+    psi = reduceStep(psi,jacobIdeal,j+1);
+//write(":a psi.tmp", string("j:", j, "   ", "psi post: ", psi));
+
+  }
+  psi = psi/number((bigint(p)^(nvars(basering)-1)));
+  
+  write(":a psi.tmp", string("baseexponent=", baseexponent, " |-> ", psi));
+  
+  return(psi);
+  
+}
+proc ReduceAllForPoleOrder(intvec baseexponent, ideal jacobIdeal, int p, int r, int poleOrder, int t, int k){
+
+	int q = p^r;
+	poly psi = 0;
+	intvec e = baseexponent;
+	list IEP = IndicesExponentsPhis(e, poleOrder, q, t, k);
+
+	for(int j = poleOrder-1; j>=0; j--){
+		
+		list IE = list(IEP[1][j+1], IEP[2][j+1], IEP[3][j+1]);
+		bigint DJ = D(j,poleOrder-1);
+		poly SigmaJ = Sigma(j, p, r, t, IE);
+
+		psi = psi + DJ*SigmaJ;
+
+		psi = reduceStep(psi, jacobIdeal, j+1);
+	}
+	psi = psi/number((bigint(p)^(nvars(basering)-1)));
+
+	return(psi);
+}
+
+proc D(int j, int n){
+	bigint ret = 0;
+	ret = ((-1)^j)*binomial(n, j);
+	return(ret);
+}
+
+		
+proc C(int j, int N){
+   bigint ret = 0;
+   ret = ((-1)^j)*binomial(N, j+1);
+   return(ret);
+}
+proc Sigma(int j, int p, int r, int t, list indicesExponents){
+
+  int upperbound = (p^r)*(j+1)-t;
+  list indices = indicesExponents[1];
+  list exponents = indicesExponents[2];
+  list phiexps = indicesExponents[3];
+  poly pol = 0;
+  poly mon = 1;
+
+  for(int i = 1; i <= size(indices); i++){
+    mon = 1;
+    intvec index = indices[i];
+    intvec exponent = exponents[i];
+    int phiexp = phiexps[i];
+    
+    bigint phi = bigint(p)^phiexp;
+    bigint multinom = multinomial(upperbound, index);
+    bigint coeff = phi*multinom;
+    
+    for(int l = 1; l <= nvars(basering); l++){ //build the monomial
+      mon  = mon*var(l)^exponent[l];
+    }
+    //write(":a summdeg.tmp", string("j=", j, "::deg(mon)=", deg(mon)));
+    pol = pol + coeff * mon;
+  }
+  return(pol);
+}
+proc validExponents(list indicesExponents, int j){
+   list exponents = indicesExponents[2];
+   for(int i = 1; i<=size(exponents);i++){
+      if(sumintvec(exponents[i]) != 5*(j+1) - 3){
+         write(":a checkExponents.tmp", string(j, ":::", sumintvec(exponents[i])));      
+   
+      }
+   }
+}
+/* takes a list containing polynomials in monomials of degree 2 and 7
+ * where those of 7 may contain non-base elements
+ * and returns for each polynomial in that list a final 
+ * reduction to deg 2 + deg 7 */
+proc finalReduction(list psiList, ideal bf, ideal jf){
+  list ret = list();
+  ideal red;
+  list forRed = list();
+  for(int i = 3; i>=1; i--){ forRed = insert(forRed, jf[i]);}
+  for(int i = size(bf); i>=1; i--){ if(deg(bf[i]) == 7){forRed = insert(forRed, bf[i]);}}
+  red = list2ideal(forRed);
+  //red contains dF/dx_i und die basis monomome mit deg == 7
+  
+  //write(":w red.tmp", red);
+  
+  for(int i = size(psiList); i >= 1; i--){
+    
+    
+    poly f1 = psiList[i];
+    
+    poly rest = reduce(f1, std(red));
+    poly f2 = f1 - rest;
+    matrix m = lift(red, f2);
+    
+    poly f3 = rest + m[1,1]*red[1] + m[2,1]*red[2] + m[3,1]*red[3] + m[4,1]*red[4] + m[5,1]*red[5] + m[6,1]*red[6] + diff(m[7,1],x) + diff(m[8,1], y) + diff(m[9,1], z);
+  
+    ret = insert(ret, f3);
+
+  }
+  return(ret);
+}
+////////////////////////////////////////////////////////////////
+// ring independent
+////////////////////////////////////////////////////////////////
+/* compares two lists; returns 0 if they're not equal, 1 else */
+proc areEqualLists(list l1, list l2){
+  if(size(l1) != size(l2)){ return(0);}
+  else{
+    for(int i = 1; i<=size(l1); i++){
+      if(l1[i] != l2[i]){ return(0);}
+    }
+    return(1);
+  }
+}
+/////////////////////////////////////////////
+/* converts a list into an intvec
+   doesn't check if all entries of the list
+   are int
+*/
+proc list2intvec(list l){
+   string s = "intvec tmpintvec = ";
+   s = string(s, l[1]);
+   for(int i = 2; i <= size(l); i++){
+      s = s + string(",",l[i]);
+   }
+   s = s + ";";
+   execute(s);
+   return(tmpintvec);
+}
+/////////////////////////////////////////////
+/* returns the sublist starting with first entry
+   at i0 and last at i1 of input list
+   returns empty list if indices invalid
+   doesn't check input for validity
+   index -1 will be last index
+*/
+proc sublist(list l, int i0, int i1){
+   string s = "list tmplist = list(";
+// allowing negative indices for last but i
+   if(i1 <= 0){
+      i1 = size(l) + 1 + i1;   
+   }
+   if(i0 <= 0){
+      i0 = size(l) + 1 + i0;
+   }   
+   s = string(s, l[i0]);
+   for(int i = i0 + 1; i <= i1; i++){
+      s = s + string(",",l[i]);
+   }
+   s = s + ");";
+   execute(s);
+   return(tmplist);
+}
+////////////////////////////////////////
+/* returns the polynomial with coefficients as p-adic
+ * approximations to precision N
+ * needs singularcurve.lib
+ */
+proc padicApproxPoly(poly f, int p, int N){
+   poly g = 0;
+   for(int i = 1; i<=size(f); i++){
+      g = g + padicApprox(leadcoef(f[i]),p,N)*leadmonom(f[i]);
+   }
+   return(g);
+}
+//////////////////////////////////////
+/* returns the absolute value of a complex number
+ * i.e. sqrt(re^2 + im^2)
+ * ASSUME: basering with complex coefficient field
+ * needs atkins.lib
+ */
+proc complexAbs(number n){
+   number re = repart(n);
+   number im = impart(n);
+   number res = re^2 + im^2;
+   res = sqr(res, 60);
+   return(res);
+}
+proc qdivides(intvec exps, int q){
+
+   for(int i = 1; i<=size(exps); i++){
+      if(exps[i] mod q != 0){
+         return(0);}
+   }
+   return(1);
+}
+///////////////////////////////////////////
+// returns the integer inv in {1,...,q-1} s.t. n*inv \equiv 1 mod q
+// and min ninv > 0 s.t. n*inv = q*ninv + 1
+proc inverse(int n, int q){
+	if( n <= 0 || q <= 0){
+		return(string("ERROR at inverse: allowed are only inputs n,q >= 0, and 1 <= n <= q-1"));
+	}
+	int ggt = gcd(n,q);
+	if(ggt != 1){
+		return(string("ERROR at inverse: ", n, " has no inverse mod ", q, "\nCommon factor: ",ggt));
+	}
+	int inv = 0;
+	int ninv = 0;
+	int breakcondition = 0;
+	for(int i = 1; i<q && breakcondition == 0; i++){
+		if((n*i - 1) mod q == 0){
+			inv = i;
+			breakcondition = 1;
+		}
+	}
+	ninv = (n*inv - 1) div q;
+	return(list(inv,ninv));
+}
+///////////////////////////////////////////
+///////////////////////////////////////////
+// returns the integer inv in {1,...,q-1} s.t. n*inv \equiv -1 mod q
+// and min ninv > 0 s.t. n*inv = q*ninv - 1
+proc inverseI(int n, int q){
+	if( n <= 0 || q <= 0){
+		return(string("ERROR at inverse: allowed are only inputs n,q >= 0, and 1 <= n <= q-1"));
+	}
+	int ggt = gcd(n,q);
+	if(ggt != 1){
+		return(string("ERROR at inverse: ", n, " has no inverse mod ", q, "\nCommon factor: ",ggt));
+	}
+	int inv = 0;
+	int ninv = 0;
+	int breakcondition = 0;
+	for(int i = 1; i<q && breakcondition == 0; i++){
+		if((n*i + 1) mod q == 0){
+			inv = i;
+			breakcondition = 1;
+		}
+	}
+	ninv = (n*inv + 1) div q;
+	return(list(inv,ninv));
+}

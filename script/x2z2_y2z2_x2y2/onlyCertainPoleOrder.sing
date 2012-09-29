@@ -1,0 +1,89 @@
+LIB "general.lib";
+LIB "linalg.lib";
+LIB "solve.lib";
+LIB "../../lib/singularcurve.lib";
+LIB "matrix.lib";
+LIB "poly.lib";
+execute(read("../../lib/helpers.sing"));
+execute(read("./IndicesExponentsT.sing"));
+
+ring Q = 0, (x,y,z), dp;
+
+int p;
+int d;
+int N;
+int DIM;
+poly f;
+ideal jf;
+ideal bf;
+
+proc setup(poly fpk, intvec degs){
+
+	f = fpk;
+	d = deg(f);
+
+	/* get derivatives */
+	ideal jf = jacob(f);
+
+	/* get monomial base for quotientring qring qr = jf as vector space over rationals */
+	ideal bf = kbase(std(jf));
+
+	/* from base get only those which count (deg \in degs) pack them into another ideal; done separately in order to avoid ideal simplification */
+	bf = extractIdeal(bf, degs);
+	DIM = size(bf);
+
+	return(list(d,jf,bf,DIM));
+}
+
+proc calc(int p, int r, int k, int poleOrder){
+	
+	/* for each base element calculate its image under psi where there's a partial reduction included */
+	list psiList = list();
+	for(int i = 0; i < DIM; i++){
+
+	  poly basemonom = bf[DIM-i];
+	  intvec e = leadexp(basemonom); //gets the exponents representing the monomial M in M/F_k**t * Omega
+	  int t = ( sumintvec(e) + 3 ) / d;
+	  
+	  psiList = insert(psiList, //Psi( e, jf, p, r, N, t, k ) );
+				ReduceAllForPoleOrder(e, jf, p, r, poleOrder+1, t, k)
+					);
+	}
+
+	/* get the matrix defining psi */
+	matrix psiMatrix = getMatrix(bf, psiList);
+	
+	string filelink = string(":w PoleOrder", poleOrder, "k", k, ".mat");
+	string matrixname = string("matrix M", poleOrder, "k", k, "[", DIM, "][", DIM, "] = ");
+	
+	write(filelink, string(matrixname, psiMatrix, ";"));
+
+	matrix valuationMat[DIM][DIM];
+	for(int row=1; row<=DIM; row++){
+		for(int col=1; col<=DIM; col++){
+			def o = padicOrder(leadcoef(psiMatrix[row,col]),p);
+			if(typeof(o)=="string"){
+				valuationMat[row,col]=1000000;
+			}else{
+			valuationMat[row,col]=o;
+			}
+		}
+	}
+	string fileln = string(":w valuationAtPoleOrder", poleOrder, "k", k, ".mat");
+	string matrixn = string("matrix vpM", poleOrder, "k", k, "[", DIM, "][", DIM, "] = ");
+	write(fileln, string(matrixn, valuationMat, ";"));
+}
+
+for(int N = 1; N <= 8; N++){
+	for(int k = 1; k <= 8; k++ ){
+		p = 5;
+		poly fpk = x^2*z^2 + y^2*z^2 + x^4+y^4+(number(p)^k)*z^4;
+		list vals = setup(fpk,  intvec(1,5) ); //d*1-3, d*2-3
+ 		d = vals[1];
+		jf = vals[2];
+		bf = vals[3];
+		DIM = vals[4];
+		calc(p,1,k,N);
+	}
+}
+exit;

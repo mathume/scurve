@@ -1,0 +1,87 @@
+proc IndicesExponentsPhis(intvec base_exponent, int N, int q, int t){
+   def inv5 = inverseI(5,q);
+   int nalpha = inv5[2];
+   int alpha = inv5[1];
+   int e0 = base_exponent[1];
+   int e1 = base_exponent[2];
+   int e2 = base_exponent[3];
+   int upmostbound = q*N - t;
+   list indices;
+   list exponents;
+   list phiexps;
+   for(int i = 1; i<=N; i++){
+      indices = insert(indices, list());
+      exponents = insert(exponents, list());
+      phiexps = insert(phiexps, list());
+   }
+   
+   string defi0 = "int i0 = t0;";
+   string defi1 = "int i1 = t1;";
+   string defi2 = "int i2 = alpha*(2*t0+e0+1)+q*t2;";
+   string defi3 = "int i3 = alpha*(2*t1+e1+1)+q*t3;";
+   string defi4 = "int i4 = alpha*(3*t0+3*t1+e2+1)+q*t4;";
+
+   int t0 = 0; 
+   execute(defi0);      
+
+   while(i0 <= upmostbound){
+
+      int t1 = 0; 
+      execute(defi1);
+      
+      while(i0 + i1 <= upmostbound){
+
+         int t2 = ceilquot(-(alpha)*(2*t0 + e0 + 1), q);
+         execute(defi2);
+
+         while(i0 + i1 + i2 <= upmostbound){
+
+            int t3 = ceilquot(-(alpha)*(2*t1 + e1 + 1), q);
+            execute(defi3);
+
+               while(i0 + i1 + i2 + i3 <= upmostbound){
+
+                  for(int j = 0; j<N; j++){
+                     int t4 = j + 1 - nalpha*(t0 + t1 + t) - (t2 + t3);
+                     execute(defi4);
+
+
+                     if(0 <= i4){
+
+                        intvec index = i0,i1,i2,i3,i4;
+                        indices[j+1] = insert(indices[j+1], index);
+
+
+                        int exp_x = nalpha*(2*t0 + e0 + 1) + 5*t2 - 1;
+                        int exp_y = nalpha*(2*t1 + e1 + 1) + 5*t3 - 1;
+                        int exp_z = nalpha*(3*t0 + 3*t1 + e2 + 1) + 5*t4 - 1;
+                        intvec exponent = exp_x,exp_y,exp_z;
+                        exponents[j+1] = insert(exponents[j+1], exponent);
+                        
+                        phiexps[j+1] = insert(phiexps[j+1], i4);
+
+                     }/*end if*/
+                  }/*end for*/
+
+                  t3++;
+                  execute(defi3);
+
+               }/*end while*/
+
+               t2++;
+               execute(defi2);
+
+        }/*end while*/
+
+            t1++;
+            execute(defi1);
+
+     }/*end while*/
+
+         t0++;
+         execute(defi0);
+
+  }/*end while*/
+
+      return(list(indices, exponents, phiexps));
+}/*end proc*/

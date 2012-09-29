@@ -1,0 +1,11 @@
+execute(read("../MatrixValuations.sing"));
+
+matrix minVals[8][8];
+
+for(int N=1; N<=8; N++){
+	for(int k=1; k<=8; k++){
+		readPOMat(N,k);
+		setMat(N,k);
+		minVals[N,k]=pMinOrder(Mat);
+	}
+}

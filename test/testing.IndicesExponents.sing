@@ -1,0 +1,35 @@
+proc writeIndicesExponents(list ie, string filename){
+   int len = size(ie[1]);   
+   link wlink = string(":w ", filename);
+   link alink = string(":a ", filename);
+   write(wlink, filename);
+   
+   for(int i = 1; i<=len; i++){
+         write(alink, string(":::::::::::::::i = ", i, ":::::::::::::::"));
+         write(alink, string("index:", ie[1][len + 1 - i]));
+         write(alink, string("exponent:", ie[2][len + 1 - i]));
+         write(alink, string("phiexp:", ie[3][len + 1 - i]));
+   }
+}
+
+
+execute(read("../script/helpers.sing"));
+execute(read("../script/x5+y5+7z5_setup.sing"));
+int j = 3;
+int t = 2;
+
+intvec e = leadexp(bf[10]);
+
+execute(read("../script/x5+y5+7z5_IndicesExponents.sing"));
+
+def IE1 = IndicesExponents(e, j, q, t);
+
+
+execute(read("../script/x5+y5+7z5_NaiveIndicesExponents.sing"));
+
+def NaiveIE = IndicesExponents(e, j, q, t);
+
+writeIndicesExponents(NaiveIE, "./testresults/x5+y5+7z5_NaiveIE.tmp");
+writeIndicesExponents(IE1, "./testresults/x5+y5+7z5_IE.tmp");
+
+exit;

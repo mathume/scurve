@@ -1,0 +1,363 @@
+/* testing singularcurve.lib */
+LIB "../lib/singularcurve.lib";
+LIB "poly.lib";
+execute(read("../script/setup.sing"));
+execute(read("../lib/helpers.sing"));
+write(":w ./testresults/singularcurve.testresults.tmp", "Running all tests");
+link li = ":a ./testresults/singularcurve.testresults.tmp";
+
+/////////////////////////////////////////////////////////////
+/* tests fuer sumintvec */
+proc test_1(){
+   string result = "passed";
+   ring r = 0, z, dp;
+   
+
+   int a = 5;
+   for(int i = 1; i<=1000; i = i + 50){
+     intvec iv = i, a, 2*a, 3*a, 4*a;
+     int b = i + a + 2*a + 3*a + 4*a;
+     if(b != sumintvec(iv)){
+       result = "failed";
+     }
+   }
+   write(li, string("test_1, sumintvec ", result));
+   
+}
+////////////////////////////////////////////////////////////
+/* tests fuer list2ideal */
+proc test_2(){
+   string result = "passed";
+   ring r = 0, z, dp;
+   ideal i = 1 + 2z; 3z2 + 4z3;
+   list l = list();
+   for (int i0 = size(i); i0 >= 1; i0--){
+     l = insert(l, i[i0]);
+   }
+   ideal j = list2ideal(l);
+
+   for(int i0 = 1; i0 <= size(j); i0++){
+     if(i[i0] != j[i0]){ result = "failed"; 
+     }   
+   }
+   write(li, string("test_2, list2ideal ", result));
+}
+////////////////////////////////////////////////////////////
+/* tests fuer multinomial */
+proc test_3(){
+   string result = "passed";
+   ring r = 0, z, dp;
+   
+   for(int i=25; i<=50; i = i + 5){
+     for(int j=0; j<=i; j = j + 5){
+       bigint b1 = binomial(i, j);
+       bigint b2 = multinomial(i, intvec(j, i-j));
+       if(b1 != b2){ result = "failed"; }
+     }
+   }
+   write(li, string("test_3, multinomial ", result));
+}
+////////////////////////////////////////////////////////////
+/* tests fuer ceilquot */
+proc test_4(){
+   string result = "passed";
+   ring r = 0, z, dp;
+   int p = 7;
+   int m = 20;
+   int count = 1;
+   for(int i = 1; i<=m*p; i++){
+     if(ceilquot(i, p) != count){ 
+     result = "failed";}
+     if(i%p == 0){ count = count + 1; }
+   }
+   
+   int cq = ceilquot(-1, 2);
+   if(cq != 0){
+      result = "failed";
+   }
+   
+   write(li, string("test_4, ceilquot ", result));
+}
+////////////////////////////////////////////////////////////
+/* testing padicOrder */
+proc test_5(){  
+   string result = "passed";
+   ring r = 0, x, dp;
+   bigint p = 17;
+   bigint n = 3;
+   def zero = number(0);
+   def b1 = number(n*p^0);
+   def b2 = number(n*p^1);
+   def b3 = number(n*p^234);
+   def k1 = padicOrder(b1, p);
+   def k2 = padicOrder(b2, p);
+   def k3 = padicOrder(b3, p);
+   def k0 = padicOrder(zero, p);
+   if( k1 != 0 || k2 !=1 || k3 != 234 || k0 != "Inf"){
+     result = "failed";
+   }
+   write(li, string("test_5 padicOrder ", result));
+}
+proc test_6(){  
+   string result = "passed";
+   ring r = 0, x, dp;
+   bigint p = 17;
+   bigint n = 3;
+   def b1 = number(n*p^1);
+   def b2 = number(n*p^234);
+   def b3 = b1/b2;   
+   def k3 = padicOrder(b3, p, 0);   
+   if( k3 != -233){
+     result = "failed";
+   }
+   write(li, string("test_6 padicOrder ", result));
+}
+////////////////////////////////////////////////////////////
+/* testing padicApprox */
+//
+//
+//
+//
+//
+//
+//
+////////////////////////////////////////////////////////////
+proc test_201(link li)
+{
+   string s = "test_201 padicApprox ";
+   string res = "passed";
+
+   ring r = 0, x, dp;
+
+   def r1 = number(92387982749872389472947293874294)/482930482093483092840329;
+   def r2 = r1^3;
+   def r3 = r1 - padicApprox(r1, 97, 35);
+   def r4 = r2 - padicApprox(r2, 53, 57);
+   r1 = r1 / 97;
+   def r5 = r1 - padicApprox(r1, 97, 35);
+   r1 = r1 / 53;
+   def r6 = r1 - padicApprox(r1, 53, 57);
+   def r7 = number(bigint(97)^12)/482930482093483092840329;
+   
+   if(35 != padicOrder(r3, 97) 
+      || 57 != padicOrder(r4, 53)
+      || 35 != padicOrder(r5, 97)
+      || 57 != padicOrder(r6, 53)
+      || 12 != padicOrder(r7, 97)){
+      res = "failed";
+   }
+   write(li, string(s, res));
+}
+/* testing reduceStep */
+proc test_7(){
+  
+  poly testpoly = 0;
+
+  for(int i = size(bf); i>=1; i--){
+    testpoly = random(1,1000)*bf[i];
+  }
+
+  poly result = reduceStep(testpoly, jf, 2);
+  
+  if(result != testpoly){ write(li, "test_7a, reduceStep failed"); }
+  else{
+  write(li, "test_7a, reduceStep passed");
+  }
+  //////////////////////////////////
+  poly testpoly = 1/3*(x3*jf[1] + y3*jf[2] + z3*jf[3]);
+  poly result = reduceStep(testpoly, jf, 2);
+  testpoly = x2 + y2 + z2;
+  if(result != testpoly){ write(li, "test_7b, reduceStep failed"); }
+  else{
+  write(li, "test_7b, reduceStep passed");
+  }
+  /////////////////////////////////
+  poly testpoly = x2 + y2 + z2;
+  poly result = reduceStep(testpoly, jf, 2);
+  
+  if(result != testpoly){ write(li, "test_7c, reduceStep failed"); }
+  else{
+  write(li, "test_7c, reduceStep passed");
+  }
+  /////////////////////////////////
+  poly testpoly = 0;
+
+  for(int i = size(bf); i>=1; i--){
+    testpoly = random(1,1000)*bf[i];
+  }
+  poly testpoly2 = testpoly + 1/3*(x3*jf[1] + y3*jf[2] + z3*jf[3]);
+  poly testpoly3 = testpoly + x2 + y2 + z2;
+  poly result = reduceStep(testpoly2, jf, 2);
+  
+  if(result != testpoly3){ write(li, "test_7d, reduceStep failed"); }
+  else{
+  write(li, "test_7d, reduceStep passed");
+  }
+}
+///////////////////////////////////////////////////////////////
+/* testing getMatrix */
+proc test_8(){
+  ring r = 0, (x,y,z), dp;
+  ideal bf = x,y,z;
+  bf = sort(bf)[1];
+  matrix m1[3][3] = 1,2,3,4,5,6,7,8,9;
+  list image = list();
+
+  for(int col = 3; col>=1; col--){
+    poly tmpoly = 0;
+    for(int row = 1; row<=3; row++){
+      tmpoly = tmpoly + m1[row, col]*bf[row];
+      
+    }
+    image = insert(image, tmpoly);
+  }
+  
+  def m2 = getMatrix(bf, image);
+  
+  if(m1 != m2){ 
+    //sciLabWriteMatrix("M1.tmp", m1, 6,6);
+    //sciLabWriteMatrix("M2.tmp", m2, 6,6);
+    write(li, "test_8, getMatrix failed"); 
+    return(1); }
+  write(li, "test_8, getMatrix passed");
+}
+
+proc test_9(){
+  ring r = 0, (x,y,z), dp;
+  ideal bf = x2,y2,z2, xy,xz,yz;
+  bf = sort(bf)[1];
+  matrix m1[6][6] = 1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12;
+  list image = list();
+
+  for(int col = 6; col>=1; col--){
+    poly tmpoly = 0;
+    for(int row = 1; row<=6; row++){
+      tmpoly = tmpoly + m1[row, col]*bf[row];
+      
+    }
+    image = insert(image, tmpoly);
+  }
+  
+  def m2 = getMatrix(bf, image);
+  
+  if(m1 != m2){ 
+    //sciLabWriteMatrix("M1.tmp", m1, 6,6);
+    //sciLabWriteMatrix("M2.tmp", m2, 6,6);
+    write(li, "test_9, getMatrix failed"); 
+    return(1); }
+  write(li, "test_9, getMatrix passed");
+}
+//////////////////////////////////////////////////////////////7
+/* testing reduceAll */
+proc test_10(){//Reduktion einfacher Basiselemente mit einem deg 7 Term
+  //finalReduction muss funktionieren
+  
+  poly B70 = x*z^7;
+  poly B91 = x*y*z^6;
+  poly B112 = 1/4 * x*y^3*z^4;
+  poly NB = x^7*z;
+  poly F = 2*(B70*jf[1] + B91*jf[2] + B112*jf[3] + NB*jf[3]);
+
+  poly result = reduceAll(F, jf, 3);
+  poly bff = z^7 + x*z^6 + x*y^3*z^3 + x^7;
+  list ll = finalReduction(list(bff), bf, jf)[1];
+
+  if(result != ll[1]){ write(li, "test_10, reduceAll failed") }
+  else{
+  write(li, "test_10, reduceAll passed");
+  }
+}
+proc test_11(){//Reduktion einfacher Basiselemente mit zwei deg 7 Termen
+  //finalReduction muss funktionieren
+  
+  poly B70 = x*z^7;
+  poly B91 = x*y*z^6;
+  poly B112 = 1/4 * x*y^3*z^4;
+  poly NB = x^7*z;
+  poly Y1 = x*y^7;
+  poly Y2 = 1/8 * y^8;
+  poly F = 2*(B70*jf[1] + Y1*jf[1] + Y2*jf[2] + B91*jf[2] + B112*jf[3] + NB*jf[3]);
+
+  poly result = reduceAll(F, jf, 3);
+  poly bff = z^7 + x*z^6 + x*y^3*z^3 + x^7 + 2*y^7;
+  list ll = finalReduction(list(bff), bf, jf)[1];
+
+  if(result != ll[1]){ write(li, "test_11, reduceAll failed"); }
+  else{write(li, "test_11, reduceAll passed");
+  }
+}
+proc test_12(){ //Reduktion einfacher Basiselemente vom Grad 7
+
+  poly B70 = x*z^7;
+  poly B91 = x*y*z^6;
+  poly B112 = 1/4 * x*y^3*z^4;
+  poly F = 2*(B70*jf[1] + B91*jf[2] + B112*jf[3]);
+  poly result = reduceAll(F, jf, 3);
+  poly bff = z^7 + x*z^6 + x*y^3*z^3;
+  
+  if(result != bff){ write(li, "test_12, reduceAll failed"); }
+  else{write(li, "test_12, reduceAll passed");}
+  //write(":w bf.tmp", bf);
+}
+proc test_13(){
+  poly bas = 1/3 * x^3 * jf[1];
+  poly F = (bf[12] + bf[11] + bf[10]) + bas;
+  poly H = F*(f^10);
+  int s = (deg(H) + 3)/5;
+  poly result = reduceAll(H, jf, s);
+  poly h = F - bas + x^2;
+  if(result != h){ write(li, "test_13, reduceAll failed"); }
+  else{write(li, "test_13, reduceAll passed");
+  }
+}
+proc test_14(){;
+  poly bas = 1/3 * x^3 * jf[1];
+  poly result = reduceAll(bas, jf, 2);
+  poly h = x^2;
+
+  if(result != h){ write(li, "test_14, reduceAll failed"); }
+  else{write(li, "test_14, reduceAll passed");
+  }
+}
+proc test_15(){ // reduction of h*f^n (omega/f^t) is h, for any base element h
+   //execute(read("setting.sing"));
+  for(int i = 1; i<= size(bf); i++){
+    poly h = bf[i];
+    poly H = h*f^10;
+    int s = (deg(H) + 3)/5;
+    poly result = reduceAll(H, jf, s);
+    if(result != h){ write(li, "test_15, reduceAll failed"); }
+    else{ write(li, "test_15, reduceAll passed"); }
+  }
+}
+proc test_16(){ //Reduktion einfacher Basiselemente vom Grad 2 und 7
+  poly bas = 1/3 * x^3 * jf[1];
+ 
+  poly F = (bf[12] + bf[11] + bf[10]) + bas;
+  poly result = reduceAll(F, jf, 2);
+  poly bff = F - bas + x^2;
+  
+  if(result != bff){ write(li, "test_16, reduceAll failed"); 
+   write(":w result.tmp", string("poly result = ", result, ";"));
+   write(":w bff.tmp", string("poly bff = ", bff, ";"));
+  }else{
+  write(li, "test_16, reduceAll passed");
+  }
+}
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+/* test suites */
+proc testAll(){
+
+      //1-7, 10-16
+      string exe = "";
+      for(int i = 1; i<=9; i++){
+         exe = exe + string("test_", i, "();");     
+      }
+      for(int i = 10; i<=16; i++){
+         exe = exe + string("test_", i, "();");
+      }
+      execute(exe);
+      test_201(li);
+}
+testAll(); exit;

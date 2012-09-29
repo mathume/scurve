@@ -1,0 +1,410 @@
+// singularcurve.lib
+/* START HEADER */
+version="v0.0.1";
+category="Number Theory";
+info="
+LIBRARY:  singularcurve.lib targets calculation of Zeta-function of a curve with quotient singularity over a finite field
+AUTHORS:  Sebastian Mitterle, sebastianmitterle@mathume.com
+PROCEDURES:
+    sumintvec(intvec); returns the sum of the coordinates of the input  
+    list2ideal(list f); returns the ideal <f[1],...,f[n]>
+    multinomial(int, intvec); returns the multinomial coefficient of N over i1,...,in
+    ceilquot(int, int); calculates the ceil function of the quotient of two int numbers
+    padicOrder(number, int) returns the p-adic order of a rational number
+    padicApprox(number, int, int); approximates a rational number in Qp for certain precision
+    reduceStep(poly, ideal, int); reduces the representation of an element f/F_k^s Omega by one degree, i.e. g/F_k^(s-1)
+    reduceAll(poly, ideal, int); returns the representation of a polynomial in baseterms
+    extractIdeal(ideal, list); returns an ideal containing the generators of the input of given degree
+    getMatrix(ideal, list); returns a matrix for the endomorphism base[i] |-> image[i]
+";
+/* END HEADER */
+////////////////////////////////////////
+/* procedures */
+/////////////////////////////////////////
+proc sumintvec(intvec e)
+"
+USAGE: sumintvec(e);  e intvec
+ASSUME: none
+RETURN: int: the sum of the entries of e
+NOTE:   none
+EXAMPLE: example sumintvec;
+"
+{
+   int a = 0;
+   for(int i = 1; i <= size(e); i++){
+     a = a + e[i];
+   }
+   return(a);
+}
+example{
+    "EXAMPLE:"; echo = 2;
+    intvec e = 1,2,3;
+    int six = sumintvec(e);
+    six;
+}
+//////////////////////////////////////
+proc list2ideal(list lf)
+"
+USAGE: list2ideal(polylist); list polylist
+ASSUME: none
+RETURN: ideal: the ideal I = polylist[1],...,polylist[n];
+NOTE:   this procedure can be used to sum ideals avoiding simplification
+EXAMPLE: example list2ideal;
+"
+{
+    //write the ideal declaration to a string
+    string s = "ideal tmpideal = " + string(lf[1]); 
+    for(int i = 2; i<=size(lf); i++){
+       s = s + "," + string(lf[i]);
+    }
+    s = s + ";";
+    
+    //import ideal by executing string
+    execute(s);
+
+    return(tmpideal);
+}
+example{
+    "EXAMPLE:"; echo = 2;
+    ring r = 0, x, dp;   
+    ideal I1 = x;
+    ideal I2 = 1;
+    list IL;
+    for(int i = 1; i<=size(I1); i++){
+       IL = insert(IL, I1[i]);   
+    }
+    for(int i = 1; i<=size(I2); i++){
+       IL = insert(IL, I2[i]);
+    }
+    ideal I3 = list2ideal(IL);
+    I1 + I2;
+    I3;
+}
+////////////////////////////////////////////
+proc multinomial(int N, intvec iv)
+"
+USAGE: multinomial(N, iv): int N, intvec iv
+ASSUME: none
+RETURN: bigint multinomial coefficient N!/(iv[1]!***iv[n]!)
+NOTE: needs general.lib; doesn't check N = sumintvec(iv)
+EXAMPLE: example multinomial;
+"
+{
+   bigint denom = 1;
+   
+   // calculate i1!***in!
+   for(int k = 1; k <= size(iv); k++){
+     denom = denom * factorial( iv[k] );
+   }
+   
+   bigint ret = factorial(N) / denom;
+   return(ret);
+}
+example{
+    "EXAMPLE:"; echo = 2;
+    LIB "general.lib";   
+    intvec iv = 1,2,3;
+    bigint mulCoef = multinomial(6, iv);
+    mulCoef;
+}
+////////////////////////////////////////////////////
+proc ceilquot(int nomi, int denomi)
+"
+USAGE: ceilquot(n1, n2); int n1, int n2
+ASSUME: none
+RETURN: ceil(decimal(n1/n2))
+NOTE: none
+EXAMPLE: example ceilquot;
+"
+{
+   int intdiv = nomi div denomi;
+
+   if(nomi % denomi == 0){
+      return(intdiv);
+   }
+   else{
+         return(intdiv + 1);
+   }
+}
+example{
+    "EXAMPLE:"; echo = 2;
+    ceilquot(1,2);
+    ceilquot(2,2);
+    ceilquot(-1,2);
+}
+//////////////////////////////////////////////////
+proc padicOrder(number n, bigint p)
+"
+USAGE: padicOrder(n, p): number n, bigint p
+ASSUME: basering is of characteristic 0
+RETURN: returns the padic order of n: if n = p^k * a/b then returns order(a) - order(b) + k; returns 'Inf' if n == 0
+NOTE: needs poly.lib
+EXAMPLE: example padicOrder;
+"
+{
+   def den = bigint(denominator(n));
+   def nom = bigint(numerator(n));
+   if(nom == 0){return("Inf");}
+   return( 
+          int( 
+          getorder(nom,p,0) 
+          - getorder(den,p,0)
+          )
+    );
+}
+example{
+    "EXAMPLE:"; echo = 2;
+    ring r = 0, x, dp;
+    LIB "poly.lib";
+    number n1 = number(1/2);
+    number n2 = number(98/3);
+    number n3 = number(0);
+    padicOrder(n1, 7);
+    padicOrder(n2, 7);
+    padicOrder(n3, 7);
+}
+/* approximates a rational number in Qp for certain precision */
+proc padicApprox(number quot, int p, int N)
+"
+USAGE: padicApprox(quot, p, N): number(quot), int p, int N
+ASSUME: basering is of characteristic 0
+RETURN: returns the p-adic approximation of a rational number up to certain precision
+NOTE: a is approximation of b to precision N <=> a - b = 0 mod p^N, i.e. a_i = 0, i>=N, include poly.lib
+EXAMPLE: example padicApprox;
+"
+{
+   bigint b = bigint(denominator(quot));
+
+   def shift = padicOrder(quot, p);
+   if(string(shift) == "Inf"){
+    return(0);
+   }
+   number quot0;
+   
+   if(shift >= 0){
+     quot0 = quot / bigint(p)^shift;
+   }else{
+     quot0 = quot * bigint(p)^(-shift);
+   }
+   
+   bigint a0 = getDigit(quot0, p);
+   bigint sumi = a0;
+   
+   for(int i = 1; i <= N-1 - shift; i++){
+     quot0 = (quot0 - a0)/p;
+     a0 = getDigit(quot0, p);
+     sumi = sumi + a0*bigint(p)^i;
+   }
+   
+   if(shift >= 0){
+     return( number( number(sumi) * bigint(p)^shift ) );
+   }else{
+     return( number( number(sumi) / bigint(p)^(-shift) ) );
+   }
+}
+example{
+    "EXAMPLE:"; echo = 2;
+    LIB "poly.lib";
+    ring r = 0, x, dp;
+    number n1 = number(0);
+    number n2 = number(1/2);
+    number n3 = 7*3 + 49*4;
+    padicApprox(n1, 7, 0);
+    padicApprox(n2, 7, 7);
+    padicApprox(n2, 7, 4);
+    padicApprox(n3, 7, 3);
+}
+//////////////////////////////////////////
+proc reduceStep(poly nom, ideal jf, int s)
+"
+USAGE: reduceStep(nom, jf, s): poly nom, ideal jf, int s
+ASSUME:  nom = 0 mod jf, basering of characteristic 0
+RETURN:  the polynomial f s.t. f/F^(s-1) Omega = nom/F^(s) Omega
+NOTE: none
+EXAMPLE: example returnStep;
+"
+{
+   if(nom == 0 || s <= 1){
+     return(nom);
+   }
+
+   poly rest = reduce(nom, std(jf));
+   if(rest != 0){
+     nom = nom - rest;
+     
+   }
+   
+   poly reduction = sumCoeffPartDeriv(nom,jf)/(s-1);
+     
+   return(
+     rest        //rest can be zero by second 'if'
+     + reduction
+     );
+}
+example{
+    "EXAMPLE:"; echo = 2;
+    ring r = 0, (x,y,z), dp;
+    poly f = x^2 + y^2 + z^2;
+    ideal jf = jacob(ideal(f));
+    "2s-2:0->2::-2,0,2";
+    "2s-2:3::4::s==3";
+    poly nom = x^2*y^2;
+    def reduced = reduceStep(nom, jf, 3);
+    reduced;
+    }
+//////////////////////////////////////////
+proc reduceAll(poly nom, ideal jf, int s)
+"
+USAGE: reduceAll(nom, jf, s): poly nom, ideal jf, int s
+ASSUME: nom == 0 mod jf
+RETURN: poly expression that expresses nom in terms of a base of R/jf
+NOTE: s is the degree of the denominator F_k^s
+EXAMPLE: example reduceAll
+"
+{
+    if(s <= 1){
+      return(reduceStep(nom, jf, s));
+    }
+    else{
+      poly redu = reduceStep(nom, jf, s);
+      return(reduceAll(redu, jf, s-1));
+    }
+}
+example{
+    "EXAMPLE:"; echo = 2;
+    ring r = 0, (x,y,z), dp;
+    poly f = x2z3 + y2z3 + x5 + y5 + 7z5;
+    ideal jf = jacob(f);
+    poly nom = x^2 + y^2;
+    nom = nom*(f^10);
+    int s = (deg(nom)+3)/5;
+    reduceAll(nom, jf, s);
+}
+//////////////////////////////////////////
+proc extractIdeal(ideal baseIdeal, intvec degrees)
+"
+USAGE: extractIdeal(base, degrees): ideal base, intvec degrees
+ASSUME: none
+RETURN: the ideal containing only those generators of the input ideal of certain degrees
+NOTE: none
+EXAMPLE: example extractIdeal;
+"
+{
+   list lf;
+   
+   for(int i = 1; i<=size(baseIdeal); i++){
+    for(int j = 1; j<=size(degrees); j++){
+       if(deg(baseIdeal[i]) == degrees[j]){
+        lf = insert(lf, baseIdeal[i]);
+       }
+    }
+   }
+
+   return(sort(list2ideal(lf))[1]); 
+}
+example{
+    "EXAMPLE:"; echo = 2;
+    LIB "general.lib";
+    ring r = 0, (x,y,z), dp;
+    poly f = x2z3 + y2z3 + x5 + y5 + 7z5;
+    ideal jf = jacob(f);
+    ideal base = kbase(std(jf));
+    size(base);
+    base = extractIdeal(base, intvec(2,7));
+    base;
+}
+//////////////////////////////////////////
+proc getMatrix(ideal base, list image)
+"
+USAGE: getMatrix(base, image): ideal base, list image
+ASSUME: the generators of base are base vectors of a module; image contains the image of each generator represented by a linear combination of the generators of base
+RETURN: the matrix representing the map base[i] -> image[i]
+EXAMPLE: example getMatrix;
+"
+{
+   
+   if(size(base) != size(image)){ return(0);}
+   
+   int length = size(base);
+   
+   matrix M[length][length];
+   
+   for(int col = 1; col <= length; col++){ //the i-th column is the image of the i-th base vector
+     
+     for(int bindex = 1; bindex <= size(image[col]); bindex++){ //for each component of the i-th base vector
+    
+       for(int row = 1; row <= length; row++){ //check for all base vectors if they coincide at this index
+    
+         if(leadexp(image[col][bindex]) == leadexp(base[row])){
+        
+           M[row,col] = leadcoef(image[col][bindex]);
+        
+         }
+      
+       }     
+     }
+   }
+   return(M);
+}
+example{
+   "EXAMPLE:"; echo=2;
+   LIB "general.lib";
+   ring r = 0, (x,y,z), dp;
+   ideal bf = x2,y2,z2, xy,xz,yz;
+   bf = sort(bf)[1];
+   matrix m1[6][6] = 1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12;
+   list image = list();
+
+   for(int col = 6; col>=1; col--){
+      poly tmpoly = 0;
+      for(int row = 1; row<=6; row++){
+         tmpoly = tmpoly + m1[row, col]*bf[row];
+         
+      }
+      image = insert(image, tmpoly);
+   }
+   
+   def m2 = getMatrix(bf, image);
+   m2;
+}
+/* static procedures */
+//////////////////////////////////////////
+/* gets the p-adic order of a bigint */
+/* guessmin is a guess for the least Order (>=0)
+ * this parameter must be used carefully, if chosen too big
+ * it will loop until int overflow for any integer
+ * default will normally be guessmin = 0
+ * needs poly.lib
+ */
+static proc getorder(bigint n, bigint p, int guessmin){
+     if(n == 0){ return("Inf");}
+     else{
+       int k = guessmin;
+       while((n mod p^(k+1)) == 0){
+      k = k + 1;
+    }
+       }
+       return(k);
+}
+/////////////////////////////////////////
+/* returns n mod p, n>=0 */
+static proc getDigit(number n, int p){
+   def bring = basering;
+   ring Fpx = p, x, dp;
+   int a = int ( fetch ( bring, n ));
+   
+   if(a < 0){ a = a + p; }
+   return(a);
+}
+/* returns \sum_{i=1->#var} (d nom)/(d var[i]) */
+static proc sumCoeffPartDeriv(poly nom, ideal jf){
+
+   matrix coeffMat = lift(jf, nom);
+   poly sumDeriv = 0;
+   for(int i = 1; i<=nvars(basering); i++){
+
+   sumDeriv = sumDeriv + diff(coeffMat[i,1], var(i));
+   }
+
+   return(sumDeriv);
+}
