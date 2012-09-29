@@ -1,0 +1,31 @@
+/* takes a list containing polynomials in monomials of degree 2 and 7
+ * where those of 7 may contain non-base elements
+ * and returns for each polynomial in that list a final 
+ * reduction to deg 2 + deg 7 */
+proc finalReduction(list psiList, ideal bf, ideal jf){
+  list ret = list();
+  ideal red;
+  list forRed = list();
+  for(int i = 3; i>=1; i--){ forRed = insert(forRed, jf[i]);}
+  for(int i = size(bf); i>=1; i--){ if(deg(bf[i]) == 7){forRed = insert(forRed, bf[i]);}}
+  red = list2ideal(forRed);
+  //red contains dF/dx_i und die basis monomome mit deg == 7
+  
+  //write(":w red.tmp", red);
+  
+  for(int i = size(psiList); i >= 1; i--){
+    
+    
+    poly f1 = psiList[i];
+    
+    poly rest = reduce(f1, std(red));
+    poly f2 = f1 - rest;
+    matrix m = lift(red, f2);
+    
+    poly f3 = rest + m[1,1]*red[1] + m[2,1]*red[2] + m[3,1]*red[3] + m[4,1]*red[4] + m[5,1]*red[5] + m[6,1]*red[6] + diff(m[7,1],x) + diff(m[8,1], y) + diff(m[9,1], z);
+  
+    ret = insert(ret, f3);
+
+  }
+  return(ret);
+}

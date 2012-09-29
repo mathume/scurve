@@ -16,6 +16,15 @@ PROCEDURES:
     reduceAll(poly, ideal, int); returns the representation of a polynomial in baseterms
     extractIdeal(ideal, list); returns an ideal containing the generators of the input of given degree
     getMatrix(ideal, list); returns a matrix for the endomorphism base[i] |-> image[i]
+    inverseI(int, int); for given (n,q) returns m,n_m s.t. mn = q*n_m -1 = -1 mod q
+    inverse(int, int); for given (n,q) returns m,n_m s.t. mn = q*n_m +1 = 1 mod q
+    areEqualLists(list, list); compares two lists; returns 0 if they're not equal, 1 else
+    list2intvec(list); converts a list containing int only to the corresponding intvec
+    sublist(list, start, end); returns the sublist {list(start),...,list(end)}
+    complexAbs(number);  sqrt(re^2 + im^2)
+    qdivides(intvec, int); 0 if there is an entry in intvec not divisable by given int
+    PolyMod(poly, int); returns the polynomial modulo an integer
+    PolyPadicOrder(poly, int); gives the p-adic order / valuation of a polynomial
 ";
 /* END HEADER */
 ////////////////////////////////////////
@@ -319,6 +328,7 @@ proc getMatrix(ideal base, list image)
 USAGE: getMatrix(base, image): ideal base, list image
 ASSUME: the generators of base are base vectors of a module; image contains the image of each generator represented by a linear combination of the generators of base
 RETURN: the matrix representing the map base[i] -> image[i]
+NOTE: none
 EXAMPLE: example getMatrix;
 "
 {
@@ -367,6 +377,265 @@ example{
    def m2 = getMatrix(bf, image);
    m2;
 }
+//////////////////////////////////////////
+proc inverseI(int n, int q)
+"
+USAGE: inverseI(int, int)
+ASSUME: there is an m in {2,...,q-1} s.t. nm = n_m q - 1 = -1 mod q
+RETURN: list(m, n_m)
+EXAMPLE: example inverseI;
+"
+{
+	if( n <= 0 || q <= 0){
+		return(string("ERROR at inverseI: allowed are only inputs n,q >= 0, and 1 <= n <= q-1"));
+	}
+	int ggt = gcd(n,q);
+	if(ggt != 1){
+		return(string("ERROR at inverseI: ", n, " has no inverse mod ", q, "\nCommon factor: ",ggt));
+	}
+	int inv = 0;
+	int ninv = 0;
+	int breakcondition = 0;
+	for(int i = 1; i<q && breakcondition == 0; i++){
+		if((n*i + 1) mod q == 0){
+			inv = i;
+			breakcondition = 1;
+		}
+	}
+	ninv = (n*inv + 1) div q;
+	return(list(inv,ninv));
+}
+example{
+   "EXAMPLE:"; echo=2;
+   ring r = 0, x, dp;
+   int a = 5;
+   int q = 7;
+   def result = inverseI(a,q);
+   if(typeof(b) == "string"){
+     //error handling
+   }
+   result;
+   a*result[1] == q*result[2] - 1;
+}
+//////////////////////////////////////////
+proc inverse(int n, int q)
+"
+USAGE: inverse(int, int)
+ASSUME: there is an m in {2,...,q-1} s.t. nm = n_m q + 1 = 1 mod q
+RETURN: list(m, n_m)
+EXAMPLE: example inverse;
+"
+{
+	if( n <= 0 || q <= 0){
+		return(string("ERROR at inverse: allowed are only inputs n,q >= 0, and 1 <= n <= q-1"));
+	}
+	int ggt = gcd(n,q);
+	if(ggt != 1){
+		return(string("ERROR at inverse: ", n, " has no inverse mod ", q, "\nCommon factor: ",ggt));
+	}
+	int inv = 0;
+	int ninv = 0;
+	int breakcondition = 0;
+	for(int i = 1; i<q && breakcondition == 0; i++){
+		if((n*i -1) mod q == 0){
+			inv = i;
+			breakcondition = 1;
+		}
+	}
+	ninv = (n*inv -1) div q;
+	return(list(inv,ninv));
+}
+example{
+   "EXAMPLE:"; echo=2;
+   ring r = 0, x, dp;
+   int a = 5;
+   int q = 7;
+   def result = inverseI(a,q);
+   if(typeof(b) == "string"){
+     //error handling
+   }
+   result;
+   a*result[1] == q*result[2] - 1;
+}
+////////////////////////////////////////////////////////////////
+/* compares two lists; returns 0 if they're not equal, 1 else */
+proc areEqualLists(list l1, list l2)
+"
+USAGE: areEqualLists(list, list)
+ASSUME: nothing
+RETURNS: 0 if lists are not equal, 1 else
+EXAMPLE: example areEqualLists;
+"
+{
+  if(size(l1) != size(l2)){ return(0);}
+  else{
+    for(int i = 1; i<=size(l1); i++){
+      if(l1[i] != l2[i]){ return(0);}
+    }
+    return(1);
+  }
+}
+example{
+  "EXAMPLE:"; echo=2;
+  ring r = 0, x, dp;
+  def l1 = list(1,2,3);
+  def l2 = list(1,2,4);
+  def l3 = list(1,2,3);
+  areEqualLists(l1,l2);
+  areEqualLists(l1,l3);
+}
+/////////////////////////////////////////////
+/* converts a list into an intvec
+   doesn't check if all entries of the list
+   are int*/
+proc list2intvec(list l)
+"
+USAGE: list2intvec(list)
+ASSUME: list contains int only
+RETURNS: an intvec holding the same values as the list
+EXAMPLE: example list2intvec;
+" 
+{
+   string s = "intvec tmpintvec = ";
+   s = string(s, l[1]);
+   for(int i = 2; i <= size(l); i++){
+      s = s + string(",",l[i]);
+   }
+   s = s + ";";
+   execute(s);
+   return(tmpintvec);
+}
+example{
+  "EXAMPLE:"; echo=2;
+  ring r = 0, x, dp;
+  def l = list(1,2,3);
+  def v = list2intvec(l);
+  v;
+  typeof(v);
+}
+/////////////////////////////////////////////
+/* returns the sublist starting with first entry
+   at i0 and last at i1 of input list
+   returns empty list if indices invalid
+   doesn't check input for validity
+   index -1 will be last index
+*/
+proc sublist(list l, int i0, int i1)
+"
+USAGE: sublist(list, start, end)
+ASSUME: nothing
+RETURNS: the sublist {list(start),...,list(end)}
+EXAMPLE: example sublist;
+"
+{
+   string s = "list tmplist = list(";
+// allowing negative indices for last but i
+   if(i1 <= 0){
+      i1 = size(l) + 1 + i1;   
+   }
+   if(i0 <= 0){
+      i0 = size(l) + 1 + i0;
+   }   
+   s = string(s, l[i0]);
+   for(int i = i0 + 1; i <= i1; i++){
+      s = s + string(",",l[i]);
+   }
+   s = s + ");";
+   execute(s);
+   return(tmplist);
+}
+example{
+  "EXAMPLE:", echo=2;
+  ring r = 0,x,dp;
+  def l = list(1,2,3,4);
+  def sl = sublist(l, 2,3);
+  sl;
+}
+//////////////////////////////////////
+/* returns the absolute value of a complex number
+ * i.e. sqrt(re^2 + im^2)
+ * ASSUME: basering with complex coefficient field
+ * needs atkins.lib
+ */
+proc complexAbs(number n)
+"
+USAGE: complexAbs(number n)
+ASSUME: basering with complex coefficient field resp. in subring of CC and atkins.lib has been imported
+RETURNS: complex norm of n
+"
+{
+   number re = repart(n);
+   number im = impart(n);
+   number res = re^2 + im^2;
+   res = sqr(res, 60);
+   return(res);
+}
+proc qdivides(intvec exps, int q)
+"
+USAGE: qdivides(intvec, int)
+ASSUME: nothing
+RETURNS: 1, if q|intvec[i] for all i, 0 else
+"
+{
+
+   for(int i = 1; i<=size(exps); i++){
+      if(exps[i] mod q != 0){
+         return(0);}
+   }
+   return(1);
+}
+///////////////////////////////////////
+///////////////////////////////////////
+/* returns the polynomial mod q
+ */
+proc PolyMod(poly f, bigint q)
+"
+USAGE: PolyMod(poly f, bigint q)
+ASSUME: f has coefficients that are integers or bigintegers
+RETURNS: f mod q
+"
+{
+	poly fmod = 0;
+	for(int i=1; i<=size(f); i++){
+		fmod = fmod + (leadcoef(f[i]) mod q)*leadmonom(f[i]);
+	}
+	return(fmod);
+}
+//////////////////////////////////////
+//////////////////////////////////////
+proc PolyPadicOrder(poly f, bigint p)
+"
+USAGE: PolyPadicOrder(poly f, bigint p)
+ASSUME: f has rational coefficients
+RETURNS: v_p(f)=min { v_p(a), a coefficient of f  }
+"
+{
+	if(f == 0)
+	{
+		return("Inf");
+	}
+	
+	def minOrMaxOrder = padicOrder(leadcoef(f[1]),p);
+	def sgn = sign(minOrMaxOrder);
+
+	for(int i=1; i<=size(f); i++){
+		def lcoef = leadcoef(f[i]);
+		def currentorder = padicOrder(lcoef,p);
+		if(currentorder == 0 || sgn != sign(currentorder))
+		{ 
+			return(0); 
+		}
+
+		if(sgn > 0 && currentorder < minOrMaxOrder){
+			minOrMaxOrder = currentorder;
+		}
+		if(sgn < 0 && currentorder > minOrMaxOrder){
+			minOrMaxOrder = currentorder;
+		}
+	}
+	if(sgn == 0){ return(0);}
+	return(minOrMaxOrder);
+}
 /* static procedures */
 //////////////////////////////////////////
 /* gets the p-adic order of a bigint */
@@ -407,4 +676,9 @@ static proc sumCoeffPartDeriv(poly nom, ideal jf){
    }
 
    return(sumDeriv);
+}
+static proc sign(number n){
+	if( n < 0 ){ return(-1); }
+	if( n == 0){ return(0); }
+	if( n > 0 ){ return(1); }
 }

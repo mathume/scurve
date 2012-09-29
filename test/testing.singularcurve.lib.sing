@@ -1,10 +1,9 @@
 /* testing singularcurve.lib */
 LIB "../lib/singularcurve.lib";
-LIB "poly.lib";
-execute(read("../script/setup.sing"));
-execute(read("../lib/helpers.sing"));
+LIB "matrix.lib";
 write(":w ./testresults/singularcurve.testresults.tmp", "Running all tests");
 link li = ":a ./testresults/singularcurve.testresults.tmp";
+execute(read("test_helpers.sing"));
 
 /////////////////////////////////////////////////////////////
 /* tests fuer sumintvec */
@@ -150,7 +149,7 @@ proc test_201(link li)
 }
 /* testing reduceStep */
 proc test_7(){
-  
+  execute(read("example_setup.sing"));
   poly testpoly = 0;
 
   for(int i = size(bf); i>=1; i--){
@@ -251,7 +250,7 @@ proc test_9(){
 /* testing reduceAll */
 proc test_10(){//Reduktion einfacher Basiselemente mit einem deg 7 Term
   //finalReduction muss funktionieren
-  
+  execute(read("example_setup.sing"));
   poly B70 = x*z^7;
   poly B91 = x*y*z^6;
   poly B112 = 1/4 * x*y^3*z^4;
@@ -269,7 +268,7 @@ proc test_10(){//Reduktion einfacher Basiselemente mit einem deg 7 Term
 }
 proc test_11(){//Reduktion einfacher Basiselemente mit zwei deg 7 Termen
   //finalReduction muss funktionieren
-  
+  execute(read("example_setup.sing"));
   poly B70 = x*z^7;
   poly B91 = x*y*z^6;
   poly B112 = 1/4 * x*y^3*z^4;
@@ -287,6 +286,7 @@ proc test_11(){//Reduktion einfacher Basiselemente mit zwei deg 7 Termen
   }
 }
 proc test_12(){ //Reduktion einfacher Basiselemente vom Grad 7
+  execute(read("example_setup.sing"));
 
   poly B70 = x*z^7;
   poly B91 = x*y*z^6;
@@ -300,6 +300,7 @@ proc test_12(){ //Reduktion einfacher Basiselemente vom Grad 7
   //write(":w bf.tmp", bf);
 }
 proc test_13(){
+  execute(read("example_setup.sing"));
   poly bas = 1/3 * x^3 * jf[1];
   poly F = (bf[12] + bf[11] + bf[10]) + bas;
   poly H = F*(f^10);
@@ -311,6 +312,7 @@ proc test_13(){
   }
 }
 proc test_14(){;
+  execute(read("example_setup.sing"));
   poly bas = 1/3 * x^3 * jf[1];
   poly result = reduceAll(bas, jf, 2);
   poly h = x^2;
@@ -321,6 +323,7 @@ proc test_14(){;
 }
 proc test_15(){ // reduction of h*f^n (omega/f^t) is h, for any base element h
    //execute(read("setting.sing"));
+  execute(read("example_setup.sing"));
   for(int i = 1; i<= size(bf); i++){
     poly h = bf[i];
     poly H = h*f^10;
@@ -331,6 +334,7 @@ proc test_15(){ // reduction of h*f^n (omega/f^t) is h, for any base element h
   }
 }
 proc test_16(){ //Reduktion einfacher Basiselemente vom Grad 2 und 7
+  execute(read("example_setup.sing"));
   poly bas = 1/3 * x^3 * jf[1];
  
   poly F = (bf[12] + bf[11] + bf[10]) + bas;
@@ -345,6 +349,89 @@ proc test_16(){ //Reduktion einfacher Basiselemente vom Grad 2 und 7
   }
 }
 ///////////////////////////////////////////////////////////////////////
+proc test_17(){ //Test inverseI with correct values
+  int a = 5;
+  int q = 7;
+  def result = inverseI(a,q);
+  int expected1 = 4;
+  int expected2 = 3;//a*4 = q*3 - 1
+
+  if(typeof(result) == "string"){ write(li, "test_17, inverseI goodvalues failed");}
+  if(expected1 != result[1] || expected2 != result[2]){ write(li, "test_17, inverseI goodvalues failed");}
+  else{
+    write(li, "test_17, inverseI goodvalues passed");
+  }
+}
+proc test_18(){//Test inverseI with ggT!=1 (not invertible)
+  int a = 7;
+  int q = 14;
+  def result = inverseI(a,q);
+  if(typeof(result)!= "string"){ write(li, "test_18, inverseI ggtNeq1 failed");}
+  else{
+    write(li, "test_17, inverseI goodvalues passed");
+  }
+}
+proc test_19(){//Test inverseI with n <= 0 || q <= 0
+  int a = 5;
+  int q = 7;
+  def result = inverseI(0,q);
+  if(typeof(result)!= "string"){ write(li, "test_19, inverseI Eq0 failed");}
+
+  def result = inverseI(a,0);
+  if(typeof(result)!= "string"){ write(li, "test_19, inverseI Eq0 failed");}
+  else{
+    write(li, "test_17, inverseI goodvalues passed");
+  }
+} 
+proc test_20(){//tests areEqualLists
+  ring r = 0, x, dp;
+  def l1 = list(1,2,3);
+  def l2 = list(1,2,4);
+  def l3 = list(1,2,3);
+  if(0 != areEqualLists(l1,l2)
+     || 1 != areEqualLists(l1,l3)){write(li, "test_20, areEqualLists failed");}
+  else{write(li, "test_20, areEqualLists passed");}
+}
+proc test_21(){
+   string s = "passed";
+   list l = list(0,1,2,3,4);
+   intvec iv = list2intvec(l);
+   for(int i = 1; i<=size(iv); i++){
+      if(iv[i] != l[i]){
+         s = "failed";
+      }
+   }
+   write(li, string("test_21, list2intvec ",s));
+}
+proc test_22(){
+   string s = "passed";
+   list l = list(1,2,3,4,5,6,7,8,9);
+   list l1 = sublist(l, 1, -1);
+   list l2 = sublist(l, 1, 4);
+   list l3 = sublist(l, 5, 9);
+   list l4 = l2 + l3;
+   
+   if( !areEqualLists(l1, l)
+      || !areEqualLists(l4, l)
+      )
+   {
+      s = "failed";
+   }
+
+   l1 = sublist(l, -1, -1);
+   l2 = sublist(l, -3, -1);
+   l3 = sublist(l, 1, 6);
+   l4 = l3 + l2;
+
+   if( !areEqualLists(l1, list(9))
+      || !areEqualLists(l, l4)
+      )
+   {
+      s = "failed";   
+   }
+   write(li, string("test_22, sublist ", s));
+}
+///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 /* test suites */
 proc testAll(){
@@ -354,7 +441,7 @@ proc testAll(){
       for(int i = 1; i<=9; i++){
          exe = exe + string("test_", i, "();");     
       }
-      for(int i = 10; i<=16; i++){
+      for(int i = 10; i<=22; i++){
          exe = exe + string("test_", i, "();");
       }
       execute(exe);
