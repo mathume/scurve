@@ -431,6 +431,119 @@ proc test_22(){
    }
    write(li, string("test_22, sublist ", s));
 }
+
+
+   
+proc test_299(link li){
+execute(read("TestIE1.sing"));
+   string s = "test_101 multinomial ";
+   string res = "passed";
+   
+   def a1 = binomial(1000,15);
+   intvec e1 = 15, 1000-15;
+   def b1 = multinomial(1000, e1);//b1==a1
+   
+   def a2 = binomial(1000, 999);
+   intvec e2 = 999, 1000-999;
+   def b2 = multinomial(1000, e2);//b2==a2
+   
+   intvec e3 = 0,0,0,1000;
+   intvec e4 = 1000,0,0,0;
+   intvec e5 = 0,0,1000,0;
+   def b3 = multinomial(1000, e3);
+   def b4 = multinomial(1000, e4);
+   def b5 = multinomial(1000, e5);
+   
+   def b6 = b3*b4*b5;//b6==1
+   
+   if(
+      a1 != b1 ||
+      a2 != a2 ||
+      b6 != 1
+   ){
+      res = "failed";
+   }
+   
+   write(li, string(s, res));
+   
+}
+
+proc test_300(link li){
+execute(read("TestIE1.sing"));
+   string s = "test_102a C ";
+   string res = "passed";
+   
+   int j0 = 0;
+   int j1 = 1;
+   int N0 = 1000;
+   
+   def C1 = C(j0, N0);
+   def C2 = C(j1, N0);
+   
+   if(C1 < 0 || C2 > 0){
+      res = "failed";
+   }
+   
+   write(li, string(s, res));
+   //////////////////////////
+   
+}
+
+proc test_301(link li){
+execute(read("TestIE1.sing"));
+   string s = "test_301a Sigma ";
+   string res = "passed";
+   
+   ring r = 0, (x,y,z), dp;
+   list indices = list(intvec(3,0,0),intvec(0,3,0),intvec(0,0,3));
+   list exponents=list(intvec(1,0,0),intvec(0,1,0),intvec(0,0,1));
+   list phiexps = list(0,0,0);
+   
+   list IE = list(indices, exponents, phiexps);
+   poly psi = Sigma(1,0,1,-3,IE);
+   poly expect = x + y + z;
+   
+   if(psi != expect){
+      res = "failed";
+   }
+   
+   write(li, string(s, res));
+   ///////////////////////////////////////////////////////////////
+   s = "test_301b Sigma ";
+   list indices = list(intvec(1,1,1),intvec(1,1,1),intvec(1,1,1));
+   
+   list IE = list(indices, exponents, phiexps);
+   psi = Sigma(1,0,1,-3,IE);
+   expect = 6*expect;
+   
+   if(psi != expect){
+      res = "failed";
+   }
+   
+   write(li, string(s, res));
+}
+/*
+proc test_302(link li){
+execute(read("TestIE1.sing"));
+   string s = "test_302b Psi ";
+   string res = "passed";
+   ring Q = 0, (x,y,z), dp;
+   
+   ideal jf = ideal(x,y,z);
+   intvec e = intvec(1,0,0);
+   ideal bf = ideal(x);
+   
+   poly psi =
+     Psi(e,jf,1,0,3,-3,1);
+      
+   poly expect = 72*(x+y+z);
+   if(psi != expect){
+      res = "failed";
+   }
+   
+   write(li, string(s, res));
+}
+*/
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 /* test suites */
@@ -443,6 +556,9 @@ proc testAll(){
       }
       for(int i = 10; i<=22; i++){
          exe = exe + string("test_", i, "();");
+      }
+      for(int i = 299; i<=301; i++){
+         exe = exe + string("test_", i, "(li);");
       }
       execute(exe);
       test_201(li);
