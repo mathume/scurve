@@ -1,6 +1,6 @@
 ring QT = 0, T, dp;
 
-execute(read("../lib/helpers.sing"));
+LIB "../lib/singularcurve.lib";
 
 proc testinv(){
 
@@ -29,3 +29,4 @@ proc testinvI(){
 
 testinv();
 testinvI();
+exit;

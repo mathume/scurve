@@ -56,45 +56,7 @@ proc test_102(link li){
    //////////////////////////
    
 }
-proc test_1(){
-   string s = "passed";
-   list l = list(0,1,2,3,4);
-   intvec iv = list2intvec(l);
-   for(int i = 1; i<=size(iv); i++){
-      if(iv[i] != l[i]){
-         s = "failed";
-      }
-   }
-   write(li, string("test_1, list2intvec ",s));
-}
-proc test_2(){
-   string s = "passed";
-   list l = list(1,2,3,4,5,6,7,8,9);
-   list l1 = sublist(l, 1, -1);
-   list l2 = sublist(l, 1, 4);
-   list l3 = sublist(l, 5, 9);
-   list l4 = l2 + l3;
-   
-   if( !areEqualLists(l1, l)
-      || !areEqualLists(l4, l)
-      )
-   {
-      s = "failed";
-   }
 
-   l1 = sublist(l, -1, -1);
-   l2 = sublist(l, -3, -1);
-   l3 = sublist(l, 1, 6);
-   l4 = l3 + l2;
-
-   if( !areEqualLists(l1, list(9))
-      || !areEqualLists(l, l4)
-      )
-   {
-      s = "failed";   
-   }
-   write(li, string("test_2, sublist ", s));
-}
 proc test_301(li){
    string s = "test_301a Sigma ";
    string res = "passed";
