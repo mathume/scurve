@@ -1,0 +1,15 @@
+Depends on:
+-----------
+Singular 3-1-5
+
+Tests:
+------
+Run a testsuite be cd test && Singular $nameOfTestSuiteFile.
+The results will be written into test/testresults.
+Most functions have a test. Those which don't are used in examples. Examples with degree 3 and 4 are giving correct results.
+You can run these by cd examples && Singular $exampleFile.
+Note that degree 5 example needs manual intervention by the user.
+
+Documentation:
+--------------
+You can find more documentation, esp. for the singularcurve.lib, in the doc folder. This folder will be updated soon. Until then please use the examples and tests for things not documentation or write an email to mathume@mathume.com.
