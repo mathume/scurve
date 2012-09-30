@@ -7,7 +7,6 @@ LIB "matrix.lib";
 LIB "poly.lib";
 
 
-ring Q = (0,T), (x,y,z), dp;
 
 int p;
 int r;

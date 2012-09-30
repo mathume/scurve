@@ -1,5 +1,8 @@
+ring Q = (0,T), (x,y,z), dp;
+
 execute(read("../lib/setup.sing"));
 execute(read("./indices_exponents/x2z2_y2z2_x4_y4.sing"));
+
 k = 6;
 N = 6;
 p = 5;
