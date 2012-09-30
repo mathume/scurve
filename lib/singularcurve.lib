@@ -2,7 +2,8 @@
 /* START HEADER */
 version="v0.0.1";
 category="Number Theory";
-info="
+info=
+"
 LIBRARY:  singularcurve.lib targets calculation of Zeta-function of a curve with ordinary double points over a finite field
 AUTHORS:  Sebastian Mitterle, sebastianmitterle@mathume.com
 PROCEDURES:
@@ -11,7 +12,7 @@ PROCEDURES:
     multinomial(int, intvec); returns the multinomial coefficient of N over i1,...,in
     ceilquot(int, int); calculates the ceil function of the quotient of two int numbers
     floorquot(int, int); calculates the floor function of the quotient of two int numbers
-    padicOrder(number, int) returns the p-adic order of a rational number
+    padicOrder(number, int); returns the p-adic order of a rational number
     padicApprox(number, int, int); approximates a rational number in Qp for certain precision
     reduceStep(poly, ideal, int); reduces the representation of an element f/F_k^s Omega by one degree, i.e. g/F_k^(s-1)
     reduceAll(poly, ideal, int); returns the representation of a polynomial in baseterms
