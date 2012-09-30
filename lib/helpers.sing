@@ -1,0 +1,58 @@
+//returns L1 as string
+proc getL1(matrix M, int p){
+  int DIM = nrows(M);
+  if(DIM != ncols(M)){ return("ERROR: getP1 received non-square matrix");}
+  matrix E[DIM][DIM]; E = E+1;//unit matrix
+  number factor=p^2*T;
+  matrix PUT = E - factor*M;
+  def L = det(PUT);
+  return(string(L));
+}
+//returns the list {b_1,...,b_g}
+proc approximateBs(string L1, int p, int r, int g){
+  list bs;
+  for(int i=g; i>=1; i--){
+    bigint bound = 2*binomial(2*g,i)*(p^r)^(floorquot(g,2));
+    bigint b=-bound;
+    int maxorder = -100000;
+    for(bigint b=-bound; bb<=bound; bb++){
+      int currorder = padicOrder(L1[i]-b);
+      if(maxorder<currorder){
+	maxorder=currorder;
+	b = bb;
+      }
+    }
+    bs = insert(bs, b);
+  }
+  return(bs);
+}
+//returns the numerator of the zeta function as string, based on the first coefficients and the sign
+//the sign "vorz" must be -1 if sqrt(-1) ist in F_p, +1 if not
+//bs=(b_1,...,b_g)
+proc LWithOrdinaryDP(list bs, int vorz, int p, int r){
+  ring QT = 0,T,dp;
+  bigint q = p^r;
+  int g = size(bs);
+
+  list a;//a_0,...,a_2g, that is 2g+1 entries, a[i]=a_{i-1}, a_i=a[i +1]
+  for(int i=0;i<=2*g; i++){a = insert(a,0);}
+
+  a[0 + 1]=1;
+
+  for(int i=1; i<=g; i++){
+    a[i   +1] = bs[i]-vorz*a[i-1   +1];
+    a[2*g-i   +1] = q^(g-i)*a[i   +1];
+  }
+
+  a[2*g   +1] = q^g;
+
+  poly L = a[1];
+
+  for(int i=1; i<=2*g; i++){
+    L = L + (a[i   +1]+vorz*a[i-1   +1])*T^i;
+  }
+  L = L + vorz*a[2*g   +1]*T^(2*g+1);
+  
+  
+  return(string(L));
+}

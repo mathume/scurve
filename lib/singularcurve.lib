@@ -10,6 +10,7 @@ PROCEDURES:
     list2ideal(list f); returns the ideal <f[1],...,f[n]>
     multinomial(int, intvec); returns the multinomial coefficient of N over i1,...,in
     ceilquot(int, int); calculates the ceil function of the quotient of two int numbers
+    floorquot(int, int); calculates the floor function of the quotient of two int numbers
     padicOrder(number, int) returns the p-adic order of a rational number
     padicApprox(number, int, int); approximates a rational number in Qp for certain precision
     reduceStep(poly, ideal, int); reduces the representation of an element f/F_k^s Omega by one degree, i.e. g/F_k^(s-1)
@@ -145,6 +146,28 @@ example{
     ceilquot(1,2);
     ceilquot(2,2);
     ceilquot(-1,2);
+}
+////////////////////////////////////////////////////
+proc floorquot(int nomi, int denomi)
+"
+USAGE: floorquot(n1, n2); int n1, int n2
+ASSUME: none
+RETURN: floor(decimal(n1/n2))
+NOTE: none
+EXAMPLE: example floorquot;
+"
+{
+   int intdiv = nomi div denomi;
+   int ceil = ceilquot(nomi, denomi);
+   if(ceil == intdiv){return(intdiv);}
+   else{return(ceil-1);}
+   
+}
+example{
+    "EXAMPLE:"; echo = 2;
+    floorquot(1,2);
+    floorquot(2,2);
+    floorquot(-1,2);
 }
 //////////////////////////////////////////////////
 proc padicOrder(number n, bigint p)

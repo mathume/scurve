@@ -522,28 +522,21 @@ execute(read("TestIE1.sing"));
    
    write(li, string(s, res));
 }
-/*
-proc test_302(link li){
-execute(read("TestIE1.sing"));
-   string s = "test_302b Psi ";
-   string res = "passed";
-   ring Q = 0, (x,y,z), dp;
+////////////////////////////////////////////////////////////
+/* tests fuer floorquot */
+proc test_302(){
+   string result = "passed";
+   ring r = 0, z, dp;
+   int r1 = floorquot(1,2);
+   int r2 = floorquot(-1,2);
+   int r3 = floorquot(2,2);
+   if(r1 != 0){result = string("failed r1 ", r1);}
+   if(r2 != -1){result = string("failed r2 ", r2);}
+   if(r3 != 1){result=string("failed r3",r3);}
    
-   ideal jf = ideal(x,y,z);
-   intvec e = intvec(1,0,0);
-   ideal bf = ideal(x);
-   
-   poly psi =
-     Psi(e,jf,1,0,3,-3,1);
-      
-   poly expect = 72*(x+y+z);
-   if(psi != expect){
-      res = "failed";
-   }
-   
-   write(li, string(s, res));
+   write(li, string("test_302, floorquot ", result));
 }
-*/
+
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 /* test suites */
@@ -557,7 +550,7 @@ proc testAll(){
       for(int i = 10; i<=22; i++){
          exe = exe + string("test_", i, "();");
       }
-      for(int i = 299; i<=301; i++){
+      for(int i = 299; i<=302; i++){
          exe = exe + string("test_", i, "(li);");
       }
       execute(exe);
