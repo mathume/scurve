@@ -1,0 +1,60 @@
+LIB "general.lib";
+LIB "linalg.lib";
+LIB "solve.lib";
+LIB "../lib/singularcurve.lib";
+execute(read("../lib/helpers.sing"));
+LIB "matrix.lib";
+LIB "poly.lib";
+
+ring Q = (0,T), (x,y,z), dp;
+
+int p;
+int r;
+int k;
+int d;
+int N;
+int DIM;
+int vorz;
+poly f;
+int g;
+ideal jf;
+ideal bf;
+
+proc setup(poly fpk, intvec degs){
+
+	f = fpk;
+	d = deg(f);
+
+	/* get derivatives */
+	ideal jf = jacob(f);
+
+	/* get monomial base for quotientring qring qr = jf as vector space over rationals */
+	ideal bf = kbase(std(jf));
+
+	/* from base get only those which count (deg \in degs) pack them into another ideal; done separately in order to avoid ideal simplification */
+	bf = extractIdeal(bf, degs);
+	DIM = size(bf);
+
+	return(list(d,jf,bf,DIM));
+}
+
+proc calc(int p, int r, int k, int N){
+	
+	/* for each base element calculate its image under psi where there's a partial reduction included */
+	list psiList = list();
+	for(int i = 0; i < DIM; i++){
+
+	  poly basemonom = bf[DIM-i];
+	  intvec e = leadexp(basemonom); //gets the exponents representing the monomial M in M/F_k**t * Omega
+	  int t = ( sumintvec(e) + 3 ) / d;
+	  
+	  psiList = insert(psiList, Psi( e, jf, p, r, N, t, k ) );
+
+	}
+
+	/* get the matrix defining psi */
+	matrix psiMatrix = getMatrix(bf, psiList);
+	return(psiMatrix);
+}
+
+

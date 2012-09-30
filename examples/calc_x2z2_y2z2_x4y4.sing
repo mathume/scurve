@@ -1,0 +1,21 @@
+execute(read("../lib/setup.sing"));
+execute(read("./indices_exponents/x2z2_y2z2_x4_y4.sing"));
+k = 6;
+N = 6;
+p = 5;
+r = 1;
+g = 2;
+vorz = -1;
+poly fpk = x^2*z^2 + y^2*z^2 + x^4 + y^4 +(number(p)^k)*z^4;
+list vals = setup(fpk,  intvec(1,5) ); //d*1-3, d*2-3
+d = vals[1];
+jf = vals[2];
+bf = vals[3];
+DIM = vals[4];
+matrix PsiN = calc(p,1,k,N);
+string L1 = getL1(PsiN,p);
+list b1 = approximateBs(L1, p, r, g);//b_1,...,b_g
+string L=LWithOrdinaryDP(b1,vorz,p,r);
+write(":w L.txt",string(L));
+exit;
+
