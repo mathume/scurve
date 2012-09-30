@@ -10,21 +10,74 @@ proc getL1(matrix M, int p){
 }
 //returns the list {b_1,...,b_g}
 proc approximateBs(string L1, int p, int r, int g){
+  ring QT = 0,T,dp;
+  poly L;
+  string strL = string("L = ", L1,";");
+  execute(strL);
+  list bNs = getbNs(L);
   list bs;
+ 
   for(int i=g; i>=1; i--){
-    bigint bound = 2*binomial(2*g,i)*(p^r)^(floorquot(g,2));
+    bigint bound = 2*binomial(2*g,i)*(p^r)^(floorquot(i,2));
     bigint b=-bound;
     int maxorder = -100000;
-    for(bigint b=-bound; bb<=bound; bb++){
-      int currorder = padicOrder(L1[i]-b);
-      if(maxorder<currorder){
-	maxorder=currorder;
+    for(bigint bb=-bound; bb<=bound; bb=bb+1){
+      
+      def currorder = padicOrder(bNs[i +1]-bb,p);
+      bb;currorder;
+      if(typeof(currorder) == "string"){//padicOrder=Infinity
+	maxorder=1000000;
 	b = bb;
+      }else{
+	if(maxorder<currorder){
+	  maxorder=currorder;
+	  b = bb;
+	 
+	}
       }
     }
     bs = insert(bs, b);
   }
   return(bs);
+}
+//returns the list {b_1,...,b_g}
+proc approximateBsDefinitionInFile(string filename, int p, int r, int g){
+  ring QT = 0,T,dp;
+  execute(read(filename));
+  list bNs = getbNs(L);
+  list bs;
+ 
+  for(int i=g; i>=1; i--){
+    bigint bound = 2*binomial(2*g,i)*(p^r)^(floorquot(i,2));
+    bigint b=-bound;
+    int maxorder = -100000;
+    for(bigint bb=-bound; bb<=bound; bb=bb+1){
+      
+      def currorder = padicOrder(bNs[i +1]-bb,p);
+      bb;currorder;
+      if(typeof(currorder) == "string"){//padicOrder=Infinity
+	maxorder=1000000;
+	b = bb;
+      }else{
+	if(maxorder<currorder){
+	  maxorder=currorder;
+	  b = bb;
+	 
+	}
+      }
+    }
+    bs = insert(bs, b);
+  }
+  return(bs);
+}
+//returns (b_0,...,b_d) for L = \sum_{i=0}^{d} b_i T^i
+proc getbNs(poly L){
+  list bNs;
+  for(int i=1; i<=deg(L)+1; i++){bNs=insert(bNs,0);}
+  for(int i=1; i<=size(L); i++){
+    bNs[deg(L[i])+1] = leadcoef(L[i]);
+  }
+  return(bNs);
 }
 //returns the numerator of the zeta function as string, based on the first coefficients and the sign
 //the sign "vorz" must be -1 if sqrt(-1) ist in F_p, +1 if not
@@ -55,4 +108,16 @@ proc LWithOrdinaryDP(list bs, int vorz, int p, int r){
   
   
   return(string(L));
+}
+proc run(link pipelink){
+  open(pipelink);
+  read(pipelink);
+  close(pipelink);
+}
+proc writetofilenameL1tmp(string L1){
+  link writelink = ":w L1.tmp";
+  link appendlink = ":a L1.tmp";
+  write(writelink, "poly L=");
+  write(appendlink, L1);
+  write(appendlink, ";");
 }
