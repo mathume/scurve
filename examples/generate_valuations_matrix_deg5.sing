@@ -1,0 +1,131 @@
+ring Q = 0, (x,y,z), dp;
+
+execute(read("../lib/setup.sing"));
+execute(read("./indices_exponents/x2z3_y2z3_x5_y5.sing"));
+LIB "general.lib";
+LIB "poly.lib";
+LIB "matrix.lib";
+LIB "linalg.lib";
+LIB "../lib/singularcurve.lib";
+
+
+//WE DEFINE HERE FUNCTIONS THAT SHOULD BE MOVED INTO ANOTHER FILE
+//FIND USAGE BELOW
+proc Min(matrix M){
+	
+	number minOrd = 1000000;
+	number currOrd = minOrd;
+	
+	for(int i=1; i<= nrows(M); i++){
+		for(int j=1; j<= ncols(M); j++){
+			currOrd = leadcoef(M[i,j]);
+			if(currOrd < minOrd){
+				minOrd = currOrd;
+			}
+		}
+	}
+	return(minOrd);
+}	
+
+proc GetTable(){
+	for(int N=1; N<= Nmax; N++){
+		for(int k=1; k<=kmax; k++){
+			execute(read(string("valuationAtPoleOrder", N, "k", k, ".mat")));
+			execute(string("def M = vpM", N, "k", k, ";"));
+			Mins[N,k] = Min(M);
+		}
+	}
+}
+
+proc basicLatexTable(){
+	string s;
+	s = string(s,"\\begin{tabular}{c|");
+	for(int N=1; N<=Nmax; N++){
+		s = string(s, "c");
+	}
+	s = string(s,"}");
+	s = string(s,"(k,N)");
+	for(int k=1; k<=kmax; k++){
+		s = string( s, "&", k);
+	}
+	s = string(s, "\\\\");
+	s = string(s,"\\hline");
+	for(int k=1; k<=kmax; k++){
+		s = string(s,k);
+		for(int N=1; N<=Nmax; N++){
+			s = string(s,"&", Mins[N,k]);
+		}
+		s = string(s,"\\\\");
+	}
+	s = string(s,"\\end{tabular}");
+
+	return(s);
+}
+//calculates [\nu_{k,N}] and [v_p(\nu_{k,N}_{i,j})]
+proc calcNu(int p, int r, int k, int poleOrder){
+	
+	/* for each base element calculate its image under psi where there's a partial reduction included */
+	list nuList = list();
+	for(int i = 0; i < DIM; i++){
+
+	  poly basemonom = bf[DIM-i];
+	  intvec e = leadexp(basemonom); //gets the exponents representing the monomial M in M/F_k**t * Omega
+	  int t = ( sumintvec(e) + 3 ) / d;
+	  
+	  nuList = insert(nuList, //Psi( e, jf, p, r, N, t, k ) );
+				ReduceAllForPoleOrder(e, jf, p, r, poleOrder+1, t, k)
+					);
+	}
+
+	/* get the matrix defining psi */
+	matrix nuMatrix = getMatrix(bf, nuList);
+	
+	string filelink = string(":w PoleOrder", poleOrder, "k", k, ".mat");
+	string matrixname = string("matrix M", poleOrder, "k", k, "[", DIM, "][", DIM, "] = ");
+	
+	write(filelink, string(matrixname, nuMatrix, ";"));
+
+	matrix valuationMat[DIM][DIM];
+	for(int row=1; row<=DIM; row++){
+		for(int col=1; col<=DIM; col++){
+		  
+			def currord=padicOrder(leadcoef(nuMatrix[row,col]),p);
+			if(typeof(currord)=="string"){
+				valuationMat[row,col]=1000000;
+			}else{
+				valuationMat[row,col]=currord;
+			}
+		}
+	}
+	string fileln = string(":w valuationAtPoleOrder", poleOrder, "k", k, ".mat");
+	string matrixn = string("matrix vpM", poleOrder, "k", k, "[", DIM, "][", DIM, "] = ");
+	write(fileln, string(matrixn, valuationMat, ";"));
+
+}
+
+
+
+int p = 7;
+int kmax=4;
+int Nmax=4;
+
+for(int N = 1; N <= Nmax; N++){
+	for(int k = 1; k <= kmax; k++ ){
+		poly fpk = x^2*z^3 + y^2*z^3 + x^5 + y^5 +(number(p)^k)*z^5;
+		list vals = setup(fpk,  intvec(2,7) ); //d*1-3, d*2-3
+ 		d = vals[1];
+		jf = vals[2];
+		bf = vals[3];
+		DIM = vals[4];
+		calcNu(p,1,k,N);
+	}
+}
+
+matrix Mins[kmax][Nmax];
+
+GetTable();
+def s = basicLatexTable();
+write(":w deg3example.tabular",s);
+exit;
+
+
