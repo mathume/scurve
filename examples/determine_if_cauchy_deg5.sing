@@ -1,0 +1,135 @@
+ring Q = 0, (x,y,z), dp;
+
+execute(read("../lib/setup.sing"));
+execute(read("./indices_exponents/x2z3_y2z3_x5_y5.sing"));
+LIB "general.lib";
+LIB "poly.lib";
+LIB "matrix.lib";
+LIB "linalg.lib";
+LIB "../lib/singularcurve.lib";
+
+
+//WE DEFINE HERE FUNCTIONS THAT SHOULD BE MOVED INTO ANOTHER FILE
+//FIND USAGE BELOW
+proc Min(matrix M){
+	
+	number minOrd = 1000000;
+	number currOrd = minOrd;
+	
+	for(int i=1; i<= nrows(M); i++){
+		for(int j=1; j<= ncols(M); j++){
+			currOrd = leadcoef(M[i,j]);
+			if(currOrd < minOrd){
+				minOrd = currOrd;
+			}
+		}
+	}
+	return(minOrd);
+}	
+
+proc basicLatexTableForEachk(int Nmax, matrix distances){
+	string s;
+	s = string(s,"\\begin{tabular}{c|");
+	for(int N=2; N<=Nmax; N++){
+		s = string(s, "c");
+	}
+	s = string(s,"}");
+	s = string(s,"$\\min\\limits_{i,j\\leq N}\\left(\\upsilon_p([\\psi^{\\ast}_m]_{i,j}-[\\psi^{\\ast}_n]_{i,j})\\right)\\text{, }m<n$");
+	for(int N=2; N<=Nmax; N++){
+		s = string( s, "&", N);
+	}
+	s = string(s, "\\\\");
+	s = string(s,"\\hline");
+	for(int m=1; m<=Nmax-1; m++){
+		s = string(s,m);
+		for(int n=2; n<=Nmax; n++){
+			if(m<n){
+				s = string(s,"&", distances[m,n]);
+			}else{
+				s = string(s, "&");
+			}
+		}
+		s = string(s,"\\\\");
+	}
+	s = string(s,"\\end{tabular}");
+
+	return(s);
+}
+//calculates psi* for all precisions in range 1,..,N
+proc calcPsi(int p, int r, int k, int N){
+	
+	/* calculate [psi^*_N] on H2DR(U_k)*/
+	matrix psiMatrix = calc(p,r,k,N);
+	
+	string filelink = getfilelink(k,N);	
+	string matrixname = getmatrixname(k, N, DIM);
+	string matrixdefinition = string("matrix ", matrixname, "[", DIM, "][", DIM, "] = ", psiMatrix, ";"); 	
+	write(filelink, matrixdefinition);
+}
+proc determineDistance(int k, int N){
+
+	matrix distvals[N][N];
+	
+		/* |a_n - a_m|_p */
+		for(int n=1; n<=N; n++){
+		for(int m=1; m<=n; m++){
+			
+			execute(read(getfilelink(k,n)));//->Mkn
+		 	execute(read(getfilelink(k,m)));//->Mkm
+
+			execute(string("def Mkn=",getmatrixname(k,n),";"));
+			execute(string("def Mkm=",getmatrixname(k,m),";"));
+			def DIST = Mkn - Mkm;
+
+			//determine valuations of entries
+			matrix valuationMat[DIM][DIM];
+
+			for(int row=1; row<=DIM; row++){
+			for(int col=1; col<=DIM; col++){
+
+				def currord=padicOrder(leadcoef(DIST[row,col]),p);
+				if(typeof(currord)=="string"){
+					valuationMat[row,col]=1000000;
+				}else{
+					valuationMat[row,col]=currord;
+				}
+			}
+			}
+			distvals[m,n]=Min(valuationMat);
+		}
+		}
+
+	return(distvals);
+}
+proc getfilelink(int k, int N){
+	return(string(":w Psi", N, "k", k, ".mat"));
+}
+proc getmatrixname(int k, int N){
+	return(string("M", N, "k", k));
+}
+
+
+
+int p = 7;
+int kmax=4;
+int Nmax=8;
+
+for(int N = 1; N <= Nmax; N++){
+	for(int k = 1; k <= kmax; k++ ){
+		poly fpk = x^2*z^3 + y^2*z^3 + x^5 + y^5 +(number(p)^k)*z^5;
+		list vals = setup(fpk,  intvec(2,7) ); //d*1-3, d*2-3
+ 		d = vals[1];
+		jf = vals[2];
+		bf = vals[3];
+		DIM = vals[4];
+		calcPsi(p,1,k,N);
+	}
+}
+
+for(int i=1; i<=kmax; i++){
+	def dists = determineDistance(i,Nmax);
+	write(string(":w dists_k",i,".mat"), string("matrix dists=", dists, ";"));
+	def latextbl = basicLatexTableForEachk(Nmax,dists);
+	write(string(":w latex_dists_k",i,".tex"),latextbl);
+}
+exit;
